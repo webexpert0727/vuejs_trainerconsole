@@ -4,6 +4,8 @@ import Login from '@/components/Login/Login'
 import SubRouter from '@/components/SubRouter'
 import Admin from '@/components/Admin/Admin'
 import LiveRun from '@/components/LiveRun/LiveRun'
+import PastRun from '@/components/LiveRun/Race/PastRun'
+import RaceDetail from '@/components/LiveRun/Race/RaceDetail'
 import Race from '@/components/LiveRun/Race'
 import RaceResume from '@/components/LiveRun/RaceResume'
 import AddRace from '@/components/Races/Create'
@@ -43,6 +45,20 @@ export default new Router({
             {
               path: 'race/:raceId/resume',
               component: RaceResume
+            }
+          ]
+        },
+        {
+          path: 'past-run',
+          component: SubRouter,
+          children: [
+            {
+              path: '/',
+              component: PastRun
+            },
+            {
+              path: 'detail/:raceId',
+              component: RaceDetail
             }
           ]
         },

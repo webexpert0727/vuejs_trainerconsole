@@ -5,13 +5,16 @@
       <label id="Runner">Runners Waiting 73</label>
       <div class="actions" v-if="Object.keys(race).length >= 0">
         <div id="app-buttons">
-          <button id="Standby" class="btn btn--primary" @click="showQuestionModalNow()">StandBy</button>
-            <button id="live-button" class="btn btn--primary" @click="handleClickLiveButton" v-if="textLiveButton !== 'Finished' && raceFirebase.statusLive !== 'finished'" :disabled="(textActionButton === 'Start race' && textLiveButton === 'Finish live') || textActionButton === 'Finish race' || loadingUpdate">{{ textLiveButton }}</button>
-           <button id="StartRun"  class="btn btn--primary">Start Run</button>
-          <button id="FinishRun" class="btn btn--primary" @click="resetTimer">Finish Run</button>
-         
-          <button id="race-button" class="btn btn--primary" @click="handleClickActionButton" v-if="textActionButton !== '' && raceFirebase.status !== 'finished'" :disabled="textLiveButton === 'Start Live' || loadingUpdate">{{ textActionButton }}</button>
-         
+          <button id="Standby" :disabled="CurrentRaceStatus!=2" class="btn btn--primary" @click="showQuestionModalNow()">StandBy</button>
+          <button id="live-button" class="btn btn--primary" @click="startLive" :disabled="CurrentRaceStatus!=3">Start Live</button>
+          <button id="StartRun" class="btn btn--primary" @click="startRace" :disabled="CurrentRaceStatus!=4">Start Run</button>
+          <button id="FinishRun" class="btn btn--primary" :disabled="CurrentRaceStatus!=5" @click="finishRace">Finish Run</button>
+          <button id="live-button" class="btn btn--primary" @click="finishLive" :disabled="CurrentRaceStatus!=6">Finish Live</button>
+        </div>
+        <div id="BuyNow" style="display:none">
+          <a href="http://google.com">
+            <p style="text-align:center; font-size:26px;">Buy Now!</p>
+          </a>
         </div>
         <div class="headertimers">
           <remaining-time></remaining-time>
@@ -26,37 +29,42 @@
     <race-question :show="showQuestionModal"></race-question>
 
     <span id="date">{{Date()}}</span>
-    <!-- <modal v-if="showModal" @close="showModal = false">
-        <div class="modal-mask">
-          <div class="modal-wrapper">
-            <div class="modal-container">
-              <div class="modal-header">
-                <h3>
-                  Today's Question
-                </h3>
-              </div>
-              <div class="modal-body">
-                <input type='text' id="Question" Placeholder="Today's Question?" />
-              </div>
-              <div class="modal-footer">
-                <slot name="footer">
-                  <button class="modal-default-button" @click="Send()">Send</button>
-                </slot>
-                <slot name="footer">
-                </slot>
-              </div>
-            </div>
-          </div>
-        </div>
-      </modal> -->
   </header>
 </template>
 
 <script>
+  var RaceStatus = {
+    "New": 1,
+    "Standby": 2,
+    "Live": 3,
+    "StartRun": 4,
+    "FinishRun": 5,
+    "FinishLive": 6,
+    "Ended": 7
+  }
+
+  let dialogOptions = {
+    html: false, // set to true if your message contains HTML tags. eg: "Delete <b>Foo</b> ?"
+    loader: false, // set to true if you want the dailog to show a loader after click on "proceed"
+    reverse: false, // switch the button positions (left to right, and vise versa)
+    cancelText: 'No',
+    okText: 'Yes',
+    animation: 'zoom', // Available: "zoom", "bounce", "fade"
+    type: 'basic', // coming soon: 'soft', 'hard'
+    verification: 'continue', // for hard confirm, user will be prompted to type this to enable the proceed button
+    clicksCount: 3,
+    animation: 'bounce', // for soft confirm, user will be asked to click on "proceed" btn 3 times before actually proceeding
+  }
+
   import Pace from '@/utils/calculation/Pace'
   import RaceResumeService from '@/services/raceResume'
   import RemainingTime from './RemainingTime'
   import RaceQuestion from './Question'
+  import Vue from "vue"
+  import VuejsDialog from "vuejs-dialog"
+
+  // Tell Vue to install the plugin.
+  Vue.use(VuejsDialog)
 
   import {
     mapGetters,
@@ -65,9 +73,9 @@
   import {
     db
   } from '../../../firebase'
-  import {
-    project
-  } from 'ramda'
+  import {project, descend, prop, sort} from 'ramda'
+
+  import RunnersByRaceService from '../../../services/runnersByRace'
   let intervalPace = null
   export default {
     name: 'race-header',
@@ -85,128 +93,164 @@
       startDate: Date.now,
       counter: 0,
       my_timer: 0,
-      showQuestionModal: false
+      showQuestionModal: false,
+      // raceIsStarted: false, //FOR BUTTON STATES - ENABLE/DISABLE
+      // raceIsLive: false, //FOR BUTTON STATES - ENABLE/DISABLE
+      // raceInStandby: false,
+      CurrentRaceStatus: 2
     }),
     computed: mapGetters({
       race: 'Race/race',
       trainer: 'Trainer/trainer',
-      template: '#modal-template'
+      //runner:'Runners/runners',
+      template: '#modal-template',
+      runners: 'Race/runners'
       // template: '#bs-modal'
     }),
     firebase: {
       racers: db.ref('racers')
     },
     methods: {
+      // isFinishLiveDisabled(){
+      //   if(!this.raceIsStarted)
+      //     return true
+      //   if(this.raceIsStarted || this.raceIsLive || this.raceInStandby)
+      //     return true
+      // },
+      // getFinishStatus() {
+      //   if (this.raceIsStarted) {
+      //     return false
+      //   } else if (this.raceInStandby || this.raceIsLive) {
+      //     return true
+      //   } else
+      //     return true
+      // },
       showQuestionModalNow() {
         console.log(this.showQuestionModal)
         this.showQuestionModal = true
       },
       initialize() {
-        this.$on('closed', ()=>{
+        this.$on('closed', () => { //WHEN MODAL IS CLOSED
           this.showQuestionModal = false
+          this.CurrentRaceStatus = RaceStatus.Live
         })
       },
-      getTextActionButton() {
-        if (this.race.startDate === null && this.race.finishDate === null) {
-          return 'Start Race'
-        } else if (this.race.startDate !== null && this.race.finishDate === null) {
-          this.savePaceRunners()
-          return 'Finish Race'
-        } else {
-          return ''
-        }
-      },
-      getTextLiveButton() {
-        if (this.raceFirebase['.value'] === undefined && this.raceFirebase.statusLive === 'started') {
-          return 'Finish Live'
-        } else if (this.raceFirebase['.value'] === undefined && this.raceFirebase.statusLive === 'finished') {
-          return 'Finished'
-        } else {
-          return 'Start Live'
-        }
-      },
+
+      //FUNCTION TO START THE RUN/RACE
       startRace() {
         let race = {
           status: 'running',
           runners: [],
-          raceResumeId: ''
+          // raceResumeId: '' //THIS CAUSES FIREBASE TO LOSE THE ID ON RACE RESUME
         }
-        this.textActionButton = 'Starting...'
-        this.loadingUpdate = true
-        this.$firebaseRefs.racers
-          .child(this.$route.params.raceId)
-          .update(race)
+        this.$dialog.confirm("Are you sure you want to Start Run now?", dialogOptions)
+          .then((dialog) => {
+            this.textActionButton = 'Starting...'
+            this.loadingUpdate = true
+            this.$firebaseRefs.racers.child(this.$route.params.raceId).update({
+              'status': 'running'
+            })
 
-        return this.$store
-          .dispatch('Race/start', this.$route.params.raceId)
-          .then(() => {
-            const raceResume = {
-              totalAmountRunners: 0,
-              startDate: new Date().toISOString(),
-              race: this.race
-            }
-            return this.createRaceResume(raceResume)
-          })
-          .then((raceResumeResult) => this.$firebaseRefs.racers.child(this.$route.params.raceId).update({
-            'raceResumeId': raceResumeResult.body.id
-          }))
-          .then(this.$firebaseRefs.racers.child(this.$route.params.raceId).update({
-            'startDateTime': Date.now()
-          }))
-          .then(() => {
-            this.loadingUpdate = false
-            this.textActionButton = 'Finish Race'
-          })
-      },
-      finishRace() {
-        let _this = this
-      return RaceResumeService.get(this.raceFirebase.raceResumeId)
-          .then(({
-            data
-          }) => {
-            clearInterval(intervalPace)
-
-          const runnersIds = Object.keys(this.raceFirebase.runners)
-
-          const runners = runnersIds.map(runnerId => {
-            return this.raceFirebase.runners[runnerId]
-          })
-
-          const totalAmountRunners = runners.reduce((accumulator, currentValue) => {
-            if (currentValue !== undefined) {
-              return accumulator + 1
-            }
-            return accumulator
-          }, 0)
-
-            const raceResume = {
-              id: data.id,
-              finishDate: new Date().toISOString(),
-              startDate: data.startDate,
-              race: data.race,
-            totalAmountRunners: totalAmountRunners
-            }
-            RaceResumeService.update(raceResume)
+            this.$firebaseRefs.racers
+              .child(this.$route.params.raceId)
+              .update(race)
+            this.$store.dispatch('Race/getRunners', this.$route.params.raceId)
               .then(() => {
-                this.$firebaseRefs.racers.child(this.$route.params.raceId).update({
-                  'status': 'finished'
-                })
+                for (var i = 0; i < this.runners.length; i++) {
+                  var id = this.runners[i].id
 
-                this.textActionButton = 'Finishing...'
-                this.loadingUpdate = true
-
+                  this.$firebaseRefs.racers.child(this.$route.params.raceId).child("runners").child(id).set({
+                    "distance": 0,
+                    "isRunning": true,
+                    "name": this.runners[i].firstName + ' ' + this.runners[i].lastName,
+                    "position": 0,
+                    "time": 0
+                  })
+                }
+              }).then(() => {
+                console.log(race)
                 return this.$store
-                  .dispatch('Race/finish', this.$route.params.raceId)
+                  .dispatch('Race/start', this.$route.params.raceId)
                   .then(() => {
-                    this.$router.push({
-                      path: `/admin/live-run/race/${this.$route.params.raceId}/resume`
+                    const raceResume = {
+                      totalAmountRunners: this.runners.length,
+                      startDate: new Date().toISOString(),
+                      race: this.race
+                    }
+                    return this.createRaceResume(raceResume)
+                  })
+                  .then((raceResumeResult) => {
+                    this.$firebaseRefs.racers.child(this.$route.params.raceId).update({
+                      'raceResumeId': raceResumeResult.body.id,
+                      'startDateTime': Date.now(),
                     })
+                     
+                  })
+                  .then(() => {
                     this.loadingUpdate = false
                     this.textActionButton = 'Finish Race'
+                    this.CurrentRaceStatus = RaceStatus.FinishRun
                   })
               })
           })
+          .catch(() => {
+            // Triggered when cancel button is clicked
+            console.log('Start Run aborted')
+          })
       },
+      //FUNCTION USED TO END/FINISH THE RACE/RUN
+      finishRace() {
+        this.$dialog.confirm("Are you sure?", dialogOptions)
+          .then((dialog) => {
+            let _this = this
+            this.$firebaseRefs.racers.child(this.$route.params.raceId).update({
+              'status': 'finished'
+            })
+           
+            let raceResumeId = this.raceFirebase.raceResumeId
+            return RaceResumeService.get(raceResumeId)
+              .then(({
+                data
+              }) => {
+                clearInterval(intervalPace)
+                // const runners = [...this.raceFirebase]
+                const runners = this.raceFirebase.runners
+                // const allRunnersCompleteRace = runners.filter((runner) => runner !== undefined && runner.raceCompleted === undefined)
+                const allRunnersCompleteRace = Object.keys(runners).length
+                const raceResume = {
+                  id: data.id,
+                  finishDate: new Date().toISOString(),
+                  startDate: data.startDate,
+                  race: data.race,
+                  totalAmountRunners: allRunnersCompleteRace
+                }
+                RaceResumeService.update(raceResume)
+                  .then(() => {
+                    this.$firebaseRefs.racers.child(this.$route.params.raceId).update({
+                      'status': 'finished',
+                      'totalAmountRunners':allRunnersCompleteRace
+                    })
+                    this.textActionButton = 'Finishing...'
+                    this.loadingUpdate = true
+                    return this.$store
+                      .dispatch('Race/finish', this.$route.params.raceId)
+                      .then(() => {
+                        // this.$router.push({
+                        //   path: `/admin/live-run/race/${this.$route.params.raceId}/resume`
+                        // })
+                        this.loadingUpdate = false
+                        this.textActionButton = 'Finish Race'
+                      })
+                  })
+                //UPDATE BUTTONS
+                this.CurrentRaceStatus = RaceStatus.FinishLive
+              })
+              .catch(function() {
+                // This will be triggered when user clicks on cancel
+              })
+          })
+      },
+
       resetTimer() {
         clearInterval(this.my_timer)
       },
@@ -214,61 +258,67 @@
         return timer > 9 ? timer : '0' + timer
       },
       startLive() {
-        this.$firebaseRefs.racers.child(this.$route.params.raceId).update({
-          'statusLive': 'started'
-        })
+        this.$dialog.confirm("Are you sure you want to Start Live now?", dialogOptions)
+          .then((dialog) => {
+            this.$firebaseRefs.racers.child(this.$route.params.raceId).update({
+              'statusLive': 'started'
+            })
+            this.CurrentRaceStatus = RaceStatus.StartRun
+            // this.raceIsLive = true
+            // this.raceIsStarted = false
+            // this.raceInStandby = false
+            this.$store.dispatch("Race/startLive")
+            setTimeout(() => {
+              console.log('Start Live Continue.')
+            }, 100)
+          })
+          .catch(() => {
+            // Triggered when cancel button is clicked
+            console.log('Start Live aborted.')
+          })
       },
+
       finishLive() {
         this.$firebaseRefs.racers.child(this.$route.params.raceId).update({
           'statusLive': 'finished'
         })
+        this.$store.dispatch("Race/stopLive")
+        this.CurrentRaceStatus = RaceStatus.Ended
       },
-      emit() {
-        this.showModal = false
+      updateButtons() {
+        this.runnersFirebasePosition()
+        let status = this.raceFirebase.status
+        console.log("Status from API: " + status)
+        if (status === "running") {
+          this.CurrentRaceStatus = RaceStatus.FinishRun
+        }
       },
-      No() {
-        this.StartRun = false
-        this.FinishRun = false
-      },
-      Yes() {
-        this.StartRun = false
-        this.FinishRun = false
-      },
-      Send() {
-        this.showModal = false
-      },
-      getFunctionActionButton() {
-        return {
-          'Start Race': 'startRace',
-          'Finish Race': 'finishRace'
-        }[this.textActionButton]
-      },
-       getFunctionLiveButton () {
-      return {
-        'Start live': 'startLive',
-        'Finish live': 'finishLive'
-      }[this.textLiveButton]
-    },
-      handleClickActionButton() {
-        let _this = this
-        this[_this.getFunctionActionButton()]()
-          .then(() => {
-            _this.$store.dispatch('Race/get', this.$route.params.raceId)
+      runnersFirebasePosition () {
+          //GET ALL RUNNERS FROM FIREBASE AND SORT DESC BY DISTANCE AND TAKE TOP 3
+          const runners = project(['id', 'distance', 'name', 'speed', 'time', 'pace'], this.runnersFirebase)
+
+          const byDistance = descend(prop('distance'))
+
+          const runnersSortByDistance = sort(byDistance, runners)
+
+          runnersSortByDistance.forEach((runner, key) => {
+            db.ref(`/racers/${this.$route.params.raceId}/runners`)
+              .child(runner.id)
+              .update({position: key + 1})
           })
+
       },
-      handleClickLiveButton () {
-      this[this.getFunctionLiveButton()]()
-    },
+      handleClickLiveButton() {
+        this[this.getFunctionLiveButton()]()
+      },
       ...mapActions({
         createRaceResume: 'RaceResume/createOne'
       }),
       savePaceRunners() {
         intervalPace = setInterval(() => {
           const runners = project(['id', 'distance', 'lastDistance', 'pace'], this.runnersFirebase)
-
           runners.forEach((runner, key) => {
             const lastDistance = runner.lastDistance ? runner.lastDistance : 0
-
             db.ref(`/racers/${this.$route.params.raceId}/runners`)
               .child(runner.id)
               .update({
@@ -281,28 +331,27 @@
     },
     watch: {
       race() {
-        this.textActionButton = this.getTextActionButton()
       },
       raceFirebase() {
-        this.textLiveButton = this.getTextLiveButton()
-      }
+        this.updateButtons()
+      },
+      CurrentRaceStatus() {
+        console.log("CurrentRaceStatus: " + this.CurrentRaceStatus)
+      },
+
     },
     created() {
       this.initialize()
       this.$bindAsObject('raceFirebase', db.ref(`/racers/${this.$route.params.raceId}`))
-
       db.ref(`/racers/${this.$route.params.raceId}/runners`)
         .on('value', (runnersFirebase) => {
           if (runnersFirebase.val()) {
             const runners = []
-
             const snap = runnersFirebase.val()
-
             Object.keys(snap).forEach((key) => {
               snap[key].id = key
               runners.push(snap[key])
             })
-
             this.runnersFirebase = runners
           }
         })

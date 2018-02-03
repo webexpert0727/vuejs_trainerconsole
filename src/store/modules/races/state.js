@@ -1,6 +1,7 @@
 const state = {
   race: {},
-  runners: []
+  runners: [],
+  isRaceLive: false
 }
 
 export default state

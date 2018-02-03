@@ -40,7 +40,7 @@
 
   .trainers-notes
     lost-column 4.5/12 0 15px flex
-
+    
     .box__content
       height calc(100vh - 260px)
 
@@ -52,7 +52,8 @@
 
   .infos
     lost-column 3/12 0 15px flex
-
+    display none !important
+    
     .remaining-time
       margin 0 0 15px
 
@@ -228,7 +229,7 @@ div#app-buttons
     position relative
 
 #newrace
-    margin-left 726px
+    margin-left 651px
     top 19px
 
 .start-run-button
@@ -282,5 +283,40 @@ div#app-buttons
 
 button#sds
     width 68px
+
+.dg-backdrop
+    background hsla(0, 3%, 3%, 0.38)!important
+
+.dg-content-footer
+    text-align center !important
+
+.dg-pull-right
+    float none !important
+
+.dg-btn
+    &.dg-btn--cancel
+        background-color #423799 !important
+        float right !important
+        left -92px !important
+    &.dg-btn--ok
+        &.dg-pull-right
+            color #423799 !important
+            border-color #423799 !important
+
+.dg-content-body
+    border-bottom 2px solid #e1e6ea !important
+    padding-bottom 15px !important
+    text-align center !important
+
+.box
+    margin-top 21px !important
+    display none !important
+
+.infos
+    margin-top 20px !important
+
+// .v-table-views
+//     &.v-table-class
+//         border-color black !important
 
 

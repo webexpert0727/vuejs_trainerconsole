@@ -33,6 +33,7 @@ export default {
   watch: {
     race() {
       setInterval(() => {
+        if(this.$route.params.raceId > 0)
         this.$store.dispatch('Race/getRunners', this.$route.params.raceId)
       }, 1000)
     },

@@ -21,7 +21,7 @@
           <label for="rememberMe">Remember me</label>
         </div>
          <div class="form__group form__group--inline">
-         <router-link to="/admin/races/add" slot="actions">Forget Password</router-link>
+         <router-link to="" slot="actions">Forget Password</router-link>
         </div>
         <button id="sign-in" class="btn btn--primary btn--block">Sign In</button>
       </form>

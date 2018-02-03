@@ -3,7 +3,6 @@
   <header class="live-run-inner">
     <race-list subtitle="in progress" :races="racesInProgress" v-if="racesInProgress.length !== 0"></race-list>
     <race-list subtitle="to start" :races="racesToStart" message-empty-list="You don't have upcoming races."></race-list>
-    <race-list subtitle="finished" :races="racesFinished" message-empty-list="There's no finished races" type="resume"></race-list>
    </header>
   </container>
 </template>
@@ -19,8 +18,7 @@ export default {
   data () {
     return {
       racesInProgress: [],
-      racesToStart: [],
-      racesFinished: []
+      racesToStart: []
     }
   },
   computed: {
@@ -51,9 +49,6 @@ export default {
     setRacesToStart () {
       this.racesToStart = this.races.filter((race) => race.startDate === null && race.finishDate === null)
     },
-    setRacesFinished () {
-      this.racesFinished = this.races.filter((race) => race.startDate !== null && race.finishDate !== null)
-    },
     ...mapActions({
       getTrainer: 'Trainer/get',
       getRacesByTrainer: 'RacesByTrainer/get',
@@ -71,7 +66,6 @@ export default {
     races () {
       this.setRacesInProgress()
       this.setRacesToStart()
-      this.setRacesFinished()
     }
   },
   components: {

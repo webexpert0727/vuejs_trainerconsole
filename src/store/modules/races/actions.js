@@ -37,6 +37,12 @@ const actions = {
   },
   updateNote ({ commit, state }, data) {
     return TrainerNoteService.updateNote(data)
+  },
+  startLive ({ commit, state },) {
+    return commit("setIsRaceLive", true)
+  },
+  stopLive ({ commit, state },) {
+    return commit("setIsRaceLive", false)
   }
 }
 

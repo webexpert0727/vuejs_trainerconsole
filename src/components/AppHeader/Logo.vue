@@ -1,6 +1,6 @@
 <template>
   <div class="logo">
-    <router-link :to="{ path: '/admin' }">
+    <router-link :to="{ path: '/admin/live-run' }">
       <img src="../../assets/logo.png" alt="LiveRun">
     </router-link>
   </div>

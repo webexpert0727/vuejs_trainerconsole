@@ -2,7 +2,8 @@
   <div class="app-header">
     <div class="container">
       <div class="app-header__row">
-        <logo class="logo-app-header"/>
+        <logo class="logo-app-header" />
+        <div v-if="isRaceLive" class="race-status">📢 Live Now</div>
         <div class="main">
           <div class="title">
             Trainer Console
@@ -15,7 +16,10 @@
               <router-link to="/admin/races">Schedule</router-link>
             </li>
             <li>
-              <router-link to="/admin/TrainerNotes">Past Run</router-link>
+              <router-link to="/admin/past-run" >Past Run</router-link>
+            </li>
+            <li>
+
             </li>
           </ul>
         </div>
@@ -26,16 +30,33 @@
 </template>
 
 <script>
-import Logo from '@/components/AppHeader/Logo'
-import UserInfo from '@/components/AppHeader/UserInfo'
+  import Logo from '@/components/AppHeader/Logo'
+  import UserInfo from '@/components/AppHeader/UserInfo'
+  import PastRun from '@/components/LiveRun/Race/PastRun'
+  import {
+    mapGetters,
+    mapActions
+  } from 'vuex'
 
-export default {
-  name: 'AppHeader',
-  components: {
-    Logo,
-    UserInfo
+  export default {
+    name: 'AppHeader',
+    components: {
+      Logo,
+      UserInfo,
+      PastRun
+    },
+    computed: mapGetters({
+      isRaceLive: 'Race/isRaceLive',
+      template: '#modal-template'
+    }),
+    watch: {
+      isRaceLive() {
+        //console.log(this.isRaceLive)
+      },
+    },
+    created() {
+    }
   }
-}
 </script>
 
 <style lang="stylus" scoped>
@@ -83,5 +104,14 @@ export default {
     .user-info
       flex 1 0 100%
       max-width calc(2.5/12 * 100% - (1 - 2.5/12) * 1px)
+
+  .race-status
+    position absolute
+    margin-left 100px
+    background-color #50ad69
+    padding 5px 10px
+    border-radius 3px
+    color #fff
+
 </style>
 

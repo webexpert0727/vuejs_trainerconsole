@@ -4,6 +4,9 @@ const getters = {
   },
   runners: (state) => {
     return state.runners
+  },
+  isRaceLive: (state) => {
+    return state.race.id >0 && state.isRaceLive
   }
 }
 

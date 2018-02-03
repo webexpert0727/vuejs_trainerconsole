@@ -20,17 +20,18 @@
           <td width="250px">{{race.duration}} minutes</td>
           <td width="150px">{{getStatusRace(race)}}</td>
           <td width="250px">{{race.date | date}}</td>
-          <td width="57px" v-show="activeRaceId!=race.id" v-if="(activeRaceId == 0 || activeRaceId==race.id  ||activeRaceId!=race.id ||  !deleteMode) ">
+
+          <td width="57px" v-show="activeRaceId!=race.id ||activeRaceId==0">
             <router-link :to="{ path:`/admin/races/edit/${race.id}` }" class="btn btn--primary btn--block" v-if="race.startDate === null">Edit</router-link>
           </td>
-          <td width="100px" v-show="activeRaceId!=race.id " v-if="(activeRaceId == 0 || activeRaceId==race.id ||activeRaceId!=race.id ||  !deleteMode)">
-            <button id="delete2" class="btn btn--danger btn--block" v-if="race.startDate === null" v-on:click="handleDelete(race)">Delete</button>
+          <td width="100px" v-show="activeRaceId!=race.id ">
+            <button id="delete2" class="btn btn--danger btn--block"  v-on:click="handleDelete(race)">Delete</button>
           </td>
           <td colspan="2" class="confirm-container" v-show="deleteMode" width="183px">
             <div class="confirmation">
               <span v-if="activeRaceId==race.id">
            <label>Sure?</label>
-          <button  class="btn btn--primary " v-on:click="deleteRaceSelected(race)">Yes</button>
+          <button  class="btn btn--primary " v-on:click="deleteRaceSelected(race,event)">Yes</button>
           <button  v-on:click="Clear"  class="btn btn-xs btn-danger">No</button>
   </span>
 

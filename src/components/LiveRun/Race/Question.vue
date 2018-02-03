@@ -6,13 +6,13 @@
     <h1>Today's Question</h1>
 </div>
     <div>
-     <textarea id="Question" Placeholder="enter your question here"></textarea>
+     <textarea v-model="question" id="Question" name="question" Placeholder="enter your question here"></textarea>
       </div>
       <div>
-       <button class="btn btn--primary" @click="Save()">Save</button>
+       <button class="btn btn--primary"  v-on:click="Save(question)">Save</button>
        </div>
     </sweet-modal>
-  
+
   </div>
 </template>
 
@@ -20,9 +20,15 @@
   import {
     SweetModal
   } from 'sweet-modal-vue'
-
+  import {
+    mapGetters,
+    mapActions
+  } from 'vuex'
   export default {
     name: 'race-question',
+    data: () => ({
+     question: ''
+    }),
     props:{
       show:false
     // },
@@ -44,14 +50,43 @@
       SweetModal,
     },
     mounted() {
-
+        //this.$parent.$emit('closed', true)
+    },
+    computed: {
+      ...mapGetters({
+        race: 'Race/race',
+        questions: 'RaceQuestion/raceQuestion'
+      })
     },
     methods: {
       onClose() {
         console.log("Closed")
         this.$parent.$emit('closed', true)
-      }
+      },
+  
+      Save: function(question){
+            var raceQuestion = {
+              question:question,
+              race: {
+                id: this.race.id
+              }
+            }
+              console.log(raceQuestion)
+            this.createRaceQuestion(raceQuestion)
+              .then(() => {
+                console.log('success')
+                this.$refs.question.close()
+              })
+              .catch(() => {
+                 console.log('failed')
+              })
+              
+      },
+      ...mapActions({
+        createRaceQuestion: 'RaceQuestion/createOne'
+      })
     },
+    
     watch: {
       show(oldVal, newVal) {
         console.log("Show Question Modal: " + this.show)
@@ -60,7 +95,6 @@
       }
     },
     Save () {
-      debugger
     },
     created() {
       this.$watch('show', function (val) {

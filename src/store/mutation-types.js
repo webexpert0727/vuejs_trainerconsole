@@ -1,6 +1,7 @@
 export const GET_TRAINER = 'GET_TRAINER'
 export const GET_RACES_BY_TRAINER = 'GET_RACES_BY_TRAINER'
 export const GET_RACE = 'GET_RACE'
+export const GET_QUESTION_BY_RACE = 'GET_QUESTION_BY_RACE'
 export const START_RACE = 'START_RACE'
 export const FINISH_RACE = 'FINISH_RACE'
 export const GET_RUNNERS_BY_RACE = 'GET_RUNNERS_BY_RACE'
